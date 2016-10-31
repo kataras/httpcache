@@ -140,7 +140,7 @@ func TestCachePackageLevelDistributedFasthttp(t *testing.T) {
 	}
 }
 
-//
+/*
 
 func TestCacheParallel(t *testing.T) {
 	t.Parallel()
@@ -226,3 +226,4 @@ func TestCacheDistributedFasthttpParallel(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+*/

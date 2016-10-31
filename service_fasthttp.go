@@ -148,19 +148,19 @@ func (s *ServiceFasthttp) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 	}
 
 	if reqCtx.IsGet() {
-		println("[FASTHTTP] ServeHTTP: GET key = " + key)
+		// println("[FASTHTTP] ServeHTTP: GET key = " + key)
 		if v := s.store.Get(key); v != nil {
 			reqCtx.Response.Header.Set(contentTypeHeader, v.ContentType)
 			reqCtx.SetStatusCode(v.StatusCode)
 			reqCtx.Write(v.Body)
-			println("[FASTHTTP] ServeHTTP:  found and sent")
+			// println("[FASTHTTP] ServeHTTP:  found and sent")
 			return
 		}
-		println("[FASTHTTP] ServeHTTP: not found ")
+		// println("[FASTHTTP] ServeHTTP: not found ")
 		reqCtx.SetStatusCode(failStatus)
 		return
 	} else if reqCtx.IsPost() {
-		println("[FASTHTTP] ServeHTTP: POST save a cache entry ")
+		// println("[FASTHTTP] ServeHTTP: POST save a cache entry ")
 		expirationSeconds, err := getURLParamInt64Fasthttp(reqCtx, queryCacheDuration)
 		// get the body from the requested body
 		// get the expiration from the "cache-control's maxage" if no url param is setted
@@ -174,7 +174,7 @@ func (s *ServiceFasthttp) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		// get the body from the requested body
 		body := reqCtx.Request.Body()[0:]
 		if len(body) == 0 {
-			println("[FASTHTTP] ServeHTTP: request's body was empty, return fail! ")
+			// println("[FASTHTTP] ServeHTTP: request's body was empty, return fail! ")
 			reqCtx.SetStatusCode(failStatus)
 			return
 
@@ -185,7 +185,7 @@ func (s *ServiceFasthttp) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		statusCode = validateStatusCode(statusCode)
 		cType := validateContentType(getURLParamFasthttp(reqCtx, queryCacheContentType))
 
-		println("[FASTHTTP] ServeHTTP: set into store: key =  "+key+" content-type: "+cType+" expiration : ", int(cacheDuration.Seconds()))
+		// println("[FASTHTTP] ServeHTTP: set into store: key =  "+key+" content-type: "+cType+" expiration : ", int(cacheDuration.Seconds()))
 		s.store.Set(key, statusCode, cType, body, cacheDuration)
 
 		reqCtx.SetStatusCode(successStatus)
@@ -235,7 +235,7 @@ func RequestFasthttp(remoteURL string, bodyHandler fasthttp.RequestHandler, expi
 		req.Header.SetMethodBytes(methodGetBytes)
 
 		res := fasthttp.AcquireResponse()
-		println("[FASTHTTP] GET Do to the remote cache service with the url: " + req.URI().String())
+		// println("[FASTHTTP] GET Do to the remote cache service with the url: " + req.URI().String())
 
 		err := ClientFasthttp.Do(req, res)
 		if err != nil || res.StatusCode() == failStatus {
@@ -260,10 +260,10 @@ func RequestFasthttp(remoteURL string, bodyHandler fasthttp.RequestHandler, expi
 			req.SetBody(body)
 
 			//	go func() {
-			println("[FASTHTTP] POST Do to the remote cache service with the url: " + req.URI().String() + " , method validation: " + string(req.Header.Method()))
+			// println("[FASTHTTP] POST Do to the remote cache service with the url: " + req.URI().String() + " , method validation: " + string(req.Header.Method()))
 			err := ClientFasthttp.Do(req, res)
 			if err != nil {
-				println("[FASTHTTP] ERROR WHEN POSTING TO SAVE THE CACHE ENTRY. TRACE: " + err.Error())
+				// println("[FASTHTTP] ERROR WHEN POSTING TO SAVE THE CACHE ENTRY. TRACE: " + err.Error())
 			}
 			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(res)
@@ -272,7 +272,7 @@ func RequestFasthttp(remoteURL string, bodyHandler fasthttp.RequestHandler, expi
 		} else {
 			// get the status code , content type and the write the response body
 			statusCode := res.StatusCode()
-			println("[FASTHTTP] ServeHTTP: WRITE WITH THE CACHED, StatusCode: ", statusCode)
+			// println("[FASTHTTP] ServeHTTP: WRITE WITH THE CACHED, StatusCode: ", statusCode)
 			cType := res.Header.ContentType()
 			reqCtx.SetStatusCode(statusCode)
 			reqCtx.Response.Header.SetContentTypeBytes(cType)
