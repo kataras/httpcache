@@ -34,7 +34,7 @@ Quick Start
 The only requirement is the [Go Programming Language](https://golang.org/dl).
 
 ```bash
-$ go get -u github.com/geekypanda/httpcache
+$ go get -u github.com/GeekyPanda/httpcache
 ```
 
 ### What's inside?
@@ -78,7 +78,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/geekypanda/httpcache"
+	"github.com/GeekyPanda/httpcache"
 )
 
 func main() {
@@ -115,14 +115,14 @@ func mypageHandler(w http.ResponseWriter, r *http.Request) {
 
 ### Next?
 
-- Navigate to the [_examples](https://github.com/geekypanda/httpcache/tree/master/_examples) folder to see a small overview of cached templates.
+- Navigate to the [_examples](https://github.com/GeekyPanda/httpcache/tree/master/_examples) folder to see a small overview of cached templates.
 
 - I didn't see any usage example of fasthttp here, why?
- * I want to keep the README as small as possible, but you can find an example of fasthttp-usage in the [_examples/fasthttp](https://github.com/geekypanda/httpcache/tree/master/_examples/fasthttp) folder.
+ * I want to keep the README as small as possible, but you can find an example of fasthttp-usage in the [_examples/fasthttp](https://github.com/GeekyPanda/httpcache/tree/master/_examples/fasthttp) folder.
 
 
 - What if I splitted my application in several servers, does this library has support for distributed apps?
- * Yes, again with one-function, go to [httpcache_test.go:TestCacheDistributed](https://github.com/geekypanda/blob/master/httpcache_test.go) and see how.
+ * Yes, again with one-function, go to [httpcache_test.go:TestCacheDistributed](https://github.com/GeekyPanda/blob/master/httpcache_test.go) and see how.
 
 
 
@@ -131,7 +131,7 @@ People
 
 The authors of httpcache project are:
 
-- [@geekypanda](https://github.com/geekypanda) has xperience of decades on network and distributed systems.
+- [@GeekyPanda](https://github.com/GeekyPanda) has xperience of decades on network and distributed systems.
 - [@kataras](https://github.com/kataras) is the author of the fastest GoLang web framework.
 
 
@@ -143,16 +143,16 @@ terms of the MIT License.
 
 License can be found [here](LICENSE).
 
-[Travis Widget]: https://img.shields.io/travis/geekypanda/httpcache.svg?style=flat-square
-[Travis]: http://travis-ci.org/geekypanda/httpcache
+[Travis Widget]: https://img.shields.io/travis/GeekyPanda/httpcache.svg?style=flat-square
+[Travis]: http://travis-ci.org/GeekyPanda/httpcache
 [License Widget]: https://img.shields.io/badge/license-MIT%20%20License%20-E91E63.svg?style=flat-square
-[License]: https://github.com/geekypanda/httpcache/blob/master/LICENSE
+[License]: https://github.com/GeekyPanda/httpcache/blob/master/LICENSE
 [Release Widget]: https://img.shields.io/badge/version-0.0.2-blue.svg?style=flat-square
-[Release]: https://github.com/geekypanda/httpcache/releases
+[Release]: https://github.com/GeekyPanda/httpcache/releases
 [Chat Widget]: https://img.shields.io/badge/community-chat-00BCD4.svg?style=flat-square
 [Chat]:  https://gitter.im/go-httpcache/Lobby
 [Report Widget]: https://img.shields.io/badge/report%20card-A%2B-F44336.svg?style=flat-square
-[Report]: http://goreportcard.com/report/geekypanda/httpcache
+[Report]: http://goreportcard.com/report/GeekyPanda/httpcache
 [Language Widget]: https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square
 [Language]: http://golang.org
 [Platform Widget]: https://img.shields.io/badge/platform-Any--OS-gray.svg?style=flat-square
