@@ -121,8 +121,8 @@ func mypageHandler(w http.ResponseWriter, r *http.Request) {
  * I want to keep the README as small as possible, but you can find an example of fasthttp-usage in the [_examples/fasthttp](https://github.com/GeekyPanda/httpcache/tree/master/_examples/fasthttp) folder.
 
 
-- What if I splitted my application in several servers, does this library has support for distributed apps?
- * Yes, again with one-function, go to [httpcache_test.go:TestCacheDistributed](https://github.com/GeekyPanda/blob/master/httpcache_test.go) and see how.
+- What if I split my application in several servers, does this library has support for distributed apps?
+ * Yes, again with one-function, go to [httpcache_test.go:TestCacheDistributed](https://github.com/GeekyPanda/httpcache/blob/master/httpcache_test.go#L80) and see how.
 
 
 
@@ -131,7 +131,7 @@ People
 
 The authors of httpcache project are:
 
-- [@GeekyPanda](https://github.com/GeekyPanda) has xperience of decades on network and distributed systems.
+- [@GeekyPanda](https://github.com/GeekyPanda) has over a decade's experience on network and distributed systems.
 - [@kataras](https://github.com/kataras) is the author of the fastest GoLang web framework.
 
 
