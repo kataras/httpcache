@@ -13,15 +13,6 @@ copies of documents passing through it; subsequent requests may
 be satisfied from the cache if certain conditions are met[.](https://en.wikipedia.org/wiki/Web_cache)
 
 
-Quick Start
------------
-
-The only requirement is the [Go Programming Language](https://golang.org/dl).
-
-```bash
-$ go get -u github.com/geekypanda/httpcache
-```
-
 ### Why?
 
 Simple, you want faster web applications,
@@ -36,6 +27,15 @@ So, should I use cache for everyhing?
 
 `httpcache` gives you the ability to cache certain handlers or the whole website,
 it's up to you where you want to apply cache!
+
+Quick Start
+-----------
+
+The only requirement is the [Go Programming Language](https://golang.org/dl).
+
+```bash
+$ go get -u github.com/geekypanda/httpcache
+```
 
 ### What's inside?
 
@@ -54,19 +54,19 @@ In short terms, **any data with any [content type](http://www.freeformatter.com/
 
 Some of them are...
 
-- application/json
-- text/html
-- text/plain
-- text/xml
-- text/javascript (JSONP)
-- application/octet-stream
-- application/pdf
-- image/jpeg
-- image/png
-- image/gif
-- image/bmp
-- image/svg+xml
-- image/x-icon
+- `application/json`
+- `text/html`
+- `text/plain`
+- `text/xml`
+- `text/javascript (JSONP)``
+- `application/octet-stream`
+- `application/pdf`
+- `image/jpeg`
+- `image/png`
+- `image/gif`
+- `image/bmp`
+- `image/svg+xml`
+- `image/x-icon`
 
 
 ### Usage
@@ -126,13 +126,13 @@ func mypageHandler(w http.ResponseWriter, r *http.Request) {
 
 
 
- People
- ------------
+People
+------------
 
- The authors of httpcache project are:
+The authors of httpcache project are:
 
- - [@geekypanda](https://github.com/geekypanda) has xperience of decades on network and distributed systems.
- - [@kataras](https://github.com/kataras) is the author of the fastest GoLang web framework.
+- [@geekypanda](https://github.com/geekypanda) has xperience of decades on network and distributed systems.
+- [@kataras](https://github.com/kataras) is the author of the fastest GoLang web framework.
 
 
 License
