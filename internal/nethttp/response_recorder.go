@@ -1,26 +1,4 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 GeekyPanda
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
-package httpcache
+package nethttp
 
 import (
 	"net/http"
@@ -29,38 +7,55 @@ import (
 
 var rpool = sync.Pool{}
 
-func acquireResponseRecorder(underline http.ResponseWriter) *responseRecorder {
+// AcquireResponseRecorder returns a ResponseRecorder
+func AcquireResponseRecorder(underline http.ResponseWriter) *ResponseRecorder {
 	v := rpool.Get()
-	var res *responseRecorder
+	var res *ResponseRecorder
 	if v != nil {
-		res = v.(*responseRecorder)
+		res = v.(*ResponseRecorder)
 	} else {
-		res = &responseRecorder{}
+		res = &ResponseRecorder{}
 	}
 	res.underline = underline
 	return res
 }
 
-func releaseResponseRecorder(res *responseRecorder) {
+// ReleaseResponseRecorder releases a ResponseRecorder which has been previously received by AcquireResponseRecorder
+func ReleaseResponseRecorder(res *ResponseRecorder) {
 	res.underline = nil
 	res.statusCode = 0
 	res.chunks = res.chunks[0:0]
 	rpool.Put(res)
 }
 
-type responseRecorder struct {
+// ResponseRecorder is used by httpcache to be able to get the Body and the StatusCode of a request handler
+type ResponseRecorder struct {
 	underline  http.ResponseWriter
 	chunks     [][]byte // 2d because .Write can be called more than one time in the same handler and we want to cache all of them
 	statusCode int      // the saved status code which will be used from the cache service
 }
 
-// getBody joins the chunks to one []byte slice, this is the full body
-func (res *responseRecorder) getBody() []byte {
+// Body joins the chunks to one []byte slice, this is the full body
+func (res *ResponseRecorder) Body() []byte {
 	var body []byte
 	for i := range res.chunks {
 		body = append(body, res.chunks[i]...)
 	}
 	return body
+}
+
+// ContentType returns the header's value of "Content-Type"
+func (res *ResponseRecorder) ContentType() string {
+	return res.Header().Get("Content-Type")
+}
+
+// StatusCode returns the status code, if not given then returns 200
+// but doesn't changes the existing behavior
+func (res *ResponseRecorder) StatusCode() int {
+	if res.statusCode == 0 {
+		return 200
+	}
+	return res.statusCode
 }
 
 // Header returns the header map that will be sent by
@@ -69,7 +64,7 @@ func (res *responseRecorder) getBody() []byte {
 // headers were declared as trailers by setting the
 // "Trailer" header before the call to WriteHeader (see example).
 // To suppress implicit response headers, set their value to nil.
-func (res *responseRecorder) Header() http.Header {
+func (res *ResponseRecorder) Header() http.Header {
 	return res.underline.Header()
 }
 
@@ -92,7 +87,7 @@ func (res *responseRecorder) Header() http.Header {
 // writing the response. However, such behavior may not be supported
 // by all HTTP/2 clients. Handlers should read before writing if
 // possible to maximize compatibility.
-func (res *responseRecorder) Write(contents []byte) (int, error) {
+func (res *ResponseRecorder) Write(contents []byte) (int, error) {
 	if res.statusCode == 0 { // if not setted set it here
 		res.WriteHeader(http.StatusOK)
 	}
@@ -105,7 +100,7 @@ func (res *responseRecorder) Write(contents []byte) (int, error) {
 // will trigger an implicit WriteHeader(http.StatusOK).
 // Thus explicit calls to WriteHeader are mainly used to
 // send error codes.
-func (res *responseRecorder) WriteHeader(statusCode int) {
+func (res *ResponseRecorder) WriteHeader(statusCode int) {
 	if res.statusCode == 0 { // set it only if not setted already, we don't want logs about multiple sends
 		res.statusCode = statusCode
 		res.underline.WriteHeader(statusCode)
