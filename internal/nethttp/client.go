@@ -97,7 +97,7 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		uri.Lifetime(h.life)
 		uri.ContentType(recorder.ContentType())
 
-		request, err = http.NewRequest(methodPost, uri.String(), bytes.NewBuffer(body)) // yes new buffer everytime
+		request, err = http.NewRequest(methodPost, uri.String(), bytes.NewBuffer(body)) // yes new buffer every time
 		ReleaseResponseRecorder(recorder)
 		// println("POST Do to the remote cache service with the url: " + request.URL.String())
 		if err != nil {

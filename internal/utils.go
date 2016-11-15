@@ -8,7 +8,7 @@ import (
 
 var maxAgeExp = regexp.MustCompile(`maxage=(\d+)`)
 
-// ParseMaxAge parses the max age from the receiver paramter, "cache-control" header
+// ParseMaxAge parses the max age from the receiver parameter, "cache-control" header
 // returns seconds as int64
 // if header not found or parse failed then it returns -1
 func ParseMaxAge(header string) int64 {

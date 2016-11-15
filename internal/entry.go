@@ -72,7 +72,7 @@ func (e *Entry) ChangeLifetime(fdur LifeChanger) {
 			e.life = newLifetime
 		} else {
 			// if even the new lifetime is less than MinimumCacheDuration
-			// then change set it explicity here
+			// then change set it explicitly here
 			e.life = MinimumCacheDuration
 		}
 	}
