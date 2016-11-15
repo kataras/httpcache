@@ -34,7 +34,7 @@ Quick Start
 The only requirement is the [Go Programming Language](https://golang.org/dl).
 
 ```bash
-$ go get -u github.com/GeekyPanda/httpcache
+$ go get -u github.com/geekypanda/httpcache/...
 ```
 
 ### What's inside?
@@ -78,7 +78,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GeekyPanda/httpcache"
+	"github.com/geekypanda/httpcache"
 )
 
 func main() {
