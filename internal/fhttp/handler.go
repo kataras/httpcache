@@ -11,8 +11,16 @@ import (
 type Handler struct {
 	// Entry is the cache entry
 	Entry *internal.Entry
+
 	// bodyHandler the original route's handler
 	bodyHandler fasthttp.RequestHandler
+
+	// Deniers a list of Denier functions which executes before real cache begins
+	// if at least one of them returns true then the original handler will execute as it's
+	// and the whole cache action(set & get) will be skipped.
+	//
+	// Read-only 'runtime'
+	Deniers []Denier
 }
 
 // NewHandler returns a new cached handler
@@ -23,10 +31,21 @@ func NewHandler(bodyHandler fasthttp.RequestHandler,
 	return &Handler{
 		Entry:       e,
 		bodyHandler: bodyHandler,
+		Deniers:     DefaultDeniers,
 	}
 }
 
 func (h *Handler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
+
+	// check for deniers, if at least one of them return true
+	// for this specific request, then skip the whole cache
+	for _, denier := range h.Deniers {
+		if denier(reqCtx) {
+			h.bodyHandler(reqCtx)
+			return
+		}
+	}
+
 	// check if is valid
 	res, valid := h.Entry.Response()
 	if !valid {

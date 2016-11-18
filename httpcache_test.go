@@ -44,6 +44,16 @@ func runTest(e *httpexpect.Expect, counterPtr *uint32, expectedBodyStr string) e
 		return errTestFailed.Format(2, counter)
 	}
 
+	// we have cache response saved for the "/" path, we have some time more here, but here
+	// we will make the requestS with one of the denier branch, let's take the "maxage=0"
+	// the ORIGINAL HANDLER SHOULD BE EXECUTED, NOT THE CACHED, so the counter will be ++
+	e.GET("/").WithHeader("max-age", "0").Expect().Status(http.StatusOK).Body().Equal(expectedBodyStr)
+	e.GET("/").WithHeader("Authorization", "basic or anything").Expect().Status(http.StatusOK).Body().Equal(expectedBodyStr)
+	counter = atomic.LoadUint32(counterPtr)
+	if counter != 4 {
+		return errTestFailed.Format(4, counter)
+	}
+
 	return nil
 }
 

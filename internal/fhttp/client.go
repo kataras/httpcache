@@ -18,6 +18,13 @@ type ClientHandler struct {
 	// bodyHandler the original route's handler
 	bodyHandler fasthttp.RequestHandler
 
+	// Deniers a list of Denier functions which executes before real cache begins
+	// if at least one of them returns true then the original handler will execute as it's
+	// and the whole cache action(set & get) will be skipped.
+	//
+	// Read-only 'runtime'
+	Deniers []Denier
+
 	life time.Duration
 
 	remoteHandlerURL string
@@ -35,6 +42,7 @@ type ClientHandler struct {
 func NewClientHandler(bodyHandler fasthttp.RequestHandler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
 		bodyHandler:      bodyHandler,
+		Deniers:          DefaultDeniers,
 		life:             life,
 		remoteHandlerURL: remote,
 	}
@@ -66,6 +74,16 @@ var (
 //
 // client-side function
 func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
+
+	// check for deniers, if at least one of them return true
+	// for this specific request, then skip the whole cache
+	for _, denier := range h.Deniers {
+		if denier(reqCtx) {
+			h.bodyHandler(reqCtx)
+			return
+		}
+	}
+
 	uri := &internal.URIBuilder{}
 	uri.ServerAddr(h.remoteHandlerURL).ClientURI(string(reqCtx.URI().RequestURI())).ClientMethod(string(reqCtx.Method()))
 

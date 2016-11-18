@@ -13,6 +13,13 @@ type Handler struct {
 	Entry *internal.Entry
 	// bodyHandler the original route's handler
 	bodyHandler http.Handler
+
+	// Deniers a list of Denier functions which executes before real cache begins
+	// if at least one of them returns true then the original handler will execute as it's
+	// and the whole cache action(set & get) will be skipped.
+	//
+	// Read-only 'runtime'
+	Deniers []Denier
 }
 
 // NewHandler returns a new cached handler
@@ -23,10 +30,20 @@ func NewHandler(bodyHandler http.Handler,
 	return &Handler{
 		Entry:       e,
 		bodyHandler: bodyHandler,
+		Deniers:     DefaultDeniers,
 	}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// check for deniers, if at least one of them return true
+	// for this specific request, then skip the whole cache
+	for _, denier := range h.Deniers {
+		if denier(r) {
+			h.bodyHandler.ServeHTTP(w, r)
+			return
+		}
+	}
+
 	// check if is valid
 	res, valid := h.Entry.Response()
 	if !valid {
