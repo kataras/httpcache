@@ -19,12 +19,10 @@ type ClientHandler struct {
 	// bodyHandler the original route's handler
 	bodyHandler http.Handler
 
-	// Deniers a list of Denier functions which executes before real cache begins
-	// if at least one of them returns true then the original handler will execute as it's
-	// and the whole cache action(set & get) will be skipped.
+	// Validator optional validators for pre cache and post cache actions
 	//
-	// Read-only 'runtime'
-	Deniers []Denier
+	// See more at validator.go
+	Validator *Validator
 
 	life time.Duration
 
@@ -43,7 +41,7 @@ type ClientHandler struct {
 func NewClientHandler(bodyHandler http.Handler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
 		bodyHandler:      bodyHandler,
-		Deniers:          DefaultDeniers,
+		Validator:        DefaultValidator(),
 		life:             life,
 		remoteHandlerURL: remote,
 	}
@@ -77,11 +75,9 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// check for deniers, if at least one of them return true
 	// for this specific request, then skip the whole cache
-	for _, denier := range h.Deniers {
-		if denier(r) {
-			h.bodyHandler.ServeHTTP(w, r)
-			return
-		}
+	if !h.Validator.claim(r) {
+		h.bodyHandler.ServeHTTP(w, r)
+		return
 	}
 
 	uri := &internal.URIBuilder{}
@@ -102,7 +98,14 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil || response.StatusCode == internal.FailStatus {
 		// if not found on cache, then execute the handler and save the cache to the remote server
 		recorder := AcquireResponseRecorder(w)
+		defer ReleaseResponseRecorder(recorder)
+
 		h.bodyHandler.ServeHTTP(recorder, r)
+
+		// check if it's a valid response, if it's not then just return.
+		if !h.Validator.valid(recorder, r) {
+			return
+		}
 		// save to the remote cache
 		// we re-create the request for any case
 
@@ -116,7 +119,7 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		uri.ContentType(recorder.ContentType())
 
 		request, err = http.NewRequest(methodPost, uri.String(), bytes.NewBuffer(body)) // yes new buffer every time
-		ReleaseResponseRecorder(recorder)
+
 		// println("POST Do to the remote cache service with the url: " + request.URL.String())
 		if err != nil {
 			//// println("Request: error on method Post of request to the remote: " + err.Error())

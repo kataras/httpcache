@@ -104,5 +104,6 @@ func (e *Entry) Reset(statusCode int, contentType string,
 	e.expiresAt = time.Now().Add(e.life)
 }
 
-// type RemoteEntry me key gt to local entry dn xreiazete
-// alla to remote logika xreiazete to url...
+// NoCacheHeader is the static header key which is setted to the response when NoCache is called,
+// used inside nethttp and fhttp Skippers.
+const NoCacheHeader = "X-No-Cache"

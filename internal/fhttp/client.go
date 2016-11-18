@@ -15,15 +15,13 @@ import (
 //  which lives on other, external machine.
 //
 type ClientHandler struct {
+	// Validator optional validators for pre cache and post cache actions
+	//
+	// See more at validator.go
+	Validator *Validator
+
 	// bodyHandler the original route's handler
 	bodyHandler fasthttp.RequestHandler
-
-	// Deniers a list of Denier functions which executes before real cache begins
-	// if at least one of them returns true then the original handler will execute as it's
-	// and the whole cache action(set & get) will be skipped.
-	//
-	// Read-only 'runtime'
-	Deniers []Denier
 
 	life time.Duration
 
@@ -41,8 +39,8 @@ type ClientHandler struct {
 // has a central http server which handles
 func NewClientHandler(bodyHandler fasthttp.RequestHandler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
+		Validator:        DefaultValidator(),
 		bodyHandler:      bodyHandler,
-		Deniers:          DefaultDeniers,
 		life:             life,
 		remoteHandlerURL: remote,
 	}
@@ -75,24 +73,23 @@ var (
 // client-side function
 func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 
-	// check for deniers, if at least one of them return true
+	// check for pre-cache validators, if at least one of them return false
 	// for this specific request, then skip the whole cache
-	for _, denier := range h.Deniers {
-		if denier(reqCtx) {
-			h.bodyHandler(reqCtx)
-			return
-		}
+	if !h.Validator.claim(reqCtx) {
+		h.bodyHandler(reqCtx)
+		return
 	}
 
 	uri := &internal.URIBuilder{}
 	uri.ServerAddr(h.remoteHandlerURL).ClientURI(string(reqCtx.URI().RequestURI())).ClientMethod(string(reqCtx.Method()))
 
 	req := fasthttp.AcquireRequest()
-
+	defer fasthttp.ReleaseRequest(req)
 	req.URI().Update(uri.String())
 	req.Header.SetMethodBytes(methodGetBytes)
 
 	res := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(res)
 	// println("[FASTHTTP] GET Do to the remote cache service with the url: " + req.URI().String())
 
 	err := ClientFasthttp.Do(req, res)
@@ -103,12 +100,16 @@ func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		//		times++
 		// if not found on cache, then execute the handler and save the cache to the remote server
 		h.bodyHandler(reqCtx)
+
+		// check if it's a valid response, if it's not then just return.
+		if !h.Validator.valid(reqCtx) {
+			return
+		}
+
 		// save to the remote cache
 
 		body := reqCtx.Response.Body()[0:]
 		if len(body) == 0 {
-			fasthttp.ReleaseRequest(req)
-			fasthttp.ReleaseResponse(res)
 			return // do nothing..
 		}
 		req.Reset()
@@ -128,8 +129,6 @@ func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		//	println("[FASTHTTP] ERROR WHEN POSTING TO SAVE THE CACHE ENTRY. TRACE: " + err.Error())
 		//	}
 		ClientFasthttp.Do(req, res)
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(res)
 		//	}()
 
 	} else {
@@ -141,9 +140,6 @@ func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		reqCtx.Response.Header.SetContentTypeBytes(cType)
 
 		reqCtx.Write(res.Body())
-
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(res)
 	}
 
 }
