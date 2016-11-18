@@ -29,7 +29,7 @@ func main() {
 	// first argument is the handler witch serves the contents to the client
 	// second argument is how long this cache will be valid
 	// and must be refreshed after the x time passed and a new request comes
-	fasthttp.ListenAndServe(":8080", httpcache.CacheFasthttp(mypageHandler, 20*time.Second))
+	fasthttp.ListenAndServe(":8080", httpcache.CacheFasthttpFunc(mypageHandler, 20*time.Second))
 	// server started, navigate to http://localhost:8080
 }
 
