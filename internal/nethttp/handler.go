@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/geekypanda/httpcache/internal"
+	"github.com/geekypanda/httpcache/internal/nethttp/rule"
 )
 
 // Handler the local cache service handler contains
@@ -12,13 +13,13 @@ import (
 // the validator for each of the incoming requests and post responses
 type Handler struct {
 
-	// Validator optional validators for pre cache and post cache actions
-	//
-	// See more at validator.go
-	Validator *Validator
-
 	// bodyHandler the original route's handler
 	bodyHandler http.Handler
+
+	// Rule optional validators for pre cache and post cache actions
+	//
+	// See more at ruleset.go
+	rule rule.Rule
 
 	// entry is the memory cache entry
 	entry *internal.Entry
@@ -31,16 +32,42 @@ func NewHandler(bodyHandler http.Handler,
 	e := internal.NewEntry(expireDuration)
 
 	return &Handler{
-		Validator:   DefaultValidator(),
 		bodyHandler: bodyHandler,
+		rule:        DefaultRuleSet,
 		entry:       e,
 	}
+}
+
+// Rule sets the ruleset for this handler,
+// see internal/net/http/ruleset.go for more information.
+//
+// returns itself.
+func (h *Handler) Rule(r rule.Rule) *Handler {
+	if r == nil {
+		// if nothing passed then use the allow-everyting rule
+		r = rule.Satisfied()
+	}
+	h.rule = r
+
+	return h
+}
+
+// AddRule adds a rule in the chain, the default rules are executed first.
+//
+// returns itself.
+func (h *Handler) AddRule(r rule.Rule) *Handler {
+	if r == nil {
+		return h
+	}
+
+	h.rule = rule.Chained(h.rule, r)
+	return h
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// check for pre-cache validators, if at least one of them return false
 	// for this specific request, then skip the whole cache
-	if !h.Validator.claim(r) {
+	if !h.rule.Claim(r) {
 		h.bodyHandler.ServeHTTP(w, r)
 		return
 	}
@@ -60,7 +87,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// we are ready to check if that specific response is valid to be stored.
 
 		// check if it's a valid response, if it's not then just return.
-		if !h.Validator.valid(recorder, r) {
+		if !h.rule.Valid(recorder, r) {
 			return
 		}
 

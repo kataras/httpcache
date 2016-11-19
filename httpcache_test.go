@@ -4,6 +4,7 @@ import (
 	"github.com/gavv/httpexpect"
 	"github.com/geekypanda/httpcache"
 	"github.com/geekypanda/httpcache/httptest"
+	"github.com/geekypanda/httpcache/internal/nethttp/rule"
 	"github.com/kataras/go-errors"
 	"github.com/valyala/fasthttp"
 	"net/http"
@@ -210,12 +211,14 @@ func TestCacheValidator(t *testing.T) {
 	mux.Handle("/", validCache)
 
 	managedCache := httpcache.Cache(h, cacheDuration)
-	managedCache.Validator.ClainWhen(func(r *http.Request) bool {
-		if r.URL.Path == "/invalid" {
-			return false // should always invalid for cache, don't bother to go to try to get or set cache
-		}
-		return true
-	})
+	managedCache.AddRule(rule.Validator([]rule.PreValidator{
+		func(r *http.Request) bool {
+			if r.URL.Path == "/invalid" {
+				return false // should always invalid for cache, don't bother to go to try to get or set cache
+			}
+			return true
+		},
+	}, nil))
 
 	managedCache2 := httpcache.Cache(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		atomic.AddUint32(&n, 1)
@@ -223,12 +226,16 @@ func TestCacheValidator(t *testing.T) {
 		res.Write([]byte(expectedBodyStr))
 
 	}), cacheDuration)
-	managedCache2.Validator.ValidWhen(func(w http.ResponseWriter, r *http.Request) bool {
-		if w.Header().Get("DONT") != "" {
-			return false // it's passed the Claim and now Valid checks if the response contains a header of "DONT"
-		}
-		return true
-	})
+	managedCache2.AddRule(rule.Validator(nil,
+		[]rule.PostValidator{
+			func(w http.ResponseWriter, r *http.Request) bool {
+				if w.Header().Get("DONT") != "" {
+					return false // it's passed the Claim and now Valid checks if the response contains a header of "DONT"
+				}
+				return true
+			},
+		},
+	))
 
 	mux.Handle("/valid", validCache)
 

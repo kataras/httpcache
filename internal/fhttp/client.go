@@ -1,10 +1,10 @@
 package fhttp
 
 import (
-	"time"
-
 	"github.com/geekypanda/httpcache/internal"
+	"github.com/geekypanda/httpcache/internal/fhttp/rule"
 	"github.com/valyala/fasthttp"
+	"time"
 )
 
 // ClientHandler is the client-side handler
@@ -15,13 +15,14 @@ import (
 //  which lives on other, external machine.
 //
 type ClientHandler struct {
-	// Validator optional validators for pre cache and post cache actions
-	//
-	// See more at validator.go
-	Validator *Validator
 
 	// bodyHandler the original route's handler
 	bodyHandler fasthttp.RequestHandler
+
+	// Rule optional validators for pre cache and post cache actions
+	//
+	// See more at ruleset.go
+	rule rule.Rule
 
 	life time.Duration
 
@@ -39,11 +40,37 @@ type ClientHandler struct {
 // has a central http server which handles
 func NewClientHandler(bodyHandler fasthttp.RequestHandler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
-		Validator:        DefaultValidator(),
 		bodyHandler:      bodyHandler,
+		rule:             DefaultRuleSet,
 		life:             life,
 		remoteHandlerURL: remote,
 	}
+}
+
+// Rule sets the ruleset for this handler,
+// see internal/net/http/ruleset.go for more information.
+//
+// returns itself.
+func (h *ClientHandler) Rule(r rule.Rule) *ClientHandler {
+	if r == nil {
+		// if nothing passed then use the allow-everyting rule
+		r = rule.Satisfied()
+	}
+	h.rule = r
+
+	return h
+}
+
+// AddRule adds a rule in the chain, the default rules are executed first.
+//
+// returns itself.
+func (h *ClientHandler) AddRule(r rule.Rule) *ClientHandler {
+	if r == nil {
+		return h
+	}
+
+	h.rule = rule.Chained(h.rule, r)
+	return h
 }
 
 // ClientFasthttp is used inside the global RequestFasthttp function
@@ -75,7 +102,7 @@ func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 
 	// check for pre-cache validators, if at least one of them return false
 	// for this specific request, then skip the whole cache
-	if !h.Validator.claim(reqCtx) {
+	if !h.rule.Claim(reqCtx) {
 		h.bodyHandler(reqCtx)
 		return
 	}
@@ -102,7 +129,7 @@ func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
 		h.bodyHandler(reqCtx)
 
 		// check if it's a valid response, if it's not then just return.
-		if !h.Validator.valid(reqCtx) {
+		if !h.rule.Valid(reqCtx) {
 			return
 		}
 

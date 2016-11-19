@@ -3,6 +3,7 @@ package nethttp
 import (
 	"bytes"
 	"github.com/geekypanda/httpcache/internal"
+	"github.com/geekypanda/httpcache/internal/nethttp/rule"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -19,10 +20,10 @@ type ClientHandler struct {
 	// bodyHandler the original route's handler
 	bodyHandler http.Handler
 
-	// Validator optional validators for pre cache and post cache actions
+	// Rule optional validators for pre cache and post cache actions
 	//
-	// See more at validator.go
-	Validator *Validator
+	// See more at ruleset.go
+	rule rule.Rule
 
 	life time.Duration
 
@@ -41,10 +42,36 @@ type ClientHandler struct {
 func NewClientHandler(bodyHandler http.Handler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
 		bodyHandler:      bodyHandler,
-		Validator:        DefaultValidator(),
+		rule:             DefaultRuleSet,
 		life:             life,
 		remoteHandlerURL: remote,
 	}
+}
+
+// Rule sets the ruleset for this handler,
+// see internal/net/http/ruleset.go for more information.
+//
+// returns itself.
+func (h *ClientHandler) Rule(r rule.Rule) *ClientHandler {
+	if r == nil {
+		// if nothing passed then use the allow-everyting rule
+		r = rule.Satisfied()
+	}
+	h.rule = r
+
+	return h
+}
+
+// AddRule adds a rule in the chain, the default rules are executed first.
+//
+// returns itself.
+func (h *ClientHandler) AddRule(r rule.Rule) *ClientHandler {
+	if r == nil {
+		return h
+	}
+
+	h.rule = rule.Chained(h.rule, r)
+	return h
 }
 
 // Client is used inside the global Request function
@@ -75,7 +102,7 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// check for deniers, if at least one of them return true
 	// for this specific request, then skip the whole cache
-	if !h.Validator.claim(r) {
+	if !h.rule.Claim(r) {
 		h.bodyHandler.ServeHTTP(w, r)
 		return
 	}
@@ -103,7 +130,7 @@ func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.bodyHandler.ServeHTTP(recorder, r)
 
 		// check if it's a valid response, if it's not then just return.
-		if !h.Validator.valid(recorder, r) {
+		if !h.rule.Valid(recorder, r) {
 			return
 		}
 		// save to the remote cache
