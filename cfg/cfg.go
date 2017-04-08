@@ -3,8 +3,8 @@ package cfg
 import "time"
 
 // The constants be used by both client and server
-const (
-	varFailStatus         = 400
+var (
+	FailStatus            = 400
 	SuccessStatus         = 200
 	ContentHTML           = "text/html; charset=utf-8"
 	ContentTypeHeader     = "Content-Type"
