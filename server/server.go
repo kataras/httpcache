@@ -34,8 +34,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/geekypanda/httpcache/internal"
-	"github.com/geekypanda/httpcache/internal/nethttp"
+	"github.com/geekypanda/httpcache/cfg"
+	"github.com/geekypanda/httpcache/nethttp"
 )
 
 func getURLParam(r *http.Request, key string) string {
@@ -76,10 +76,10 @@ type Handler struct {
 // server-side function
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// println("Request to the remote service has been established")
-	key := getURLParam(r, internal.QueryCacheKey)
+	key := getURLParam(r, cfg.QueryCacheKey)
 	if key == "" {
 		// println("return because key was empty")
-		w.WriteHeader(internal.FailStatus)
+		w.WriteHeader(cfg.FailStatus)
 		return
 	}
 
@@ -94,7 +94,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// no delete action is valid
 		// no get action is valid
 		// no post action is requested
-		w.WriteHeader(internal.FailStatus)
+		w.WriteHeader(cfg.FailStatus)
 		return
 	}
 
@@ -106,13 +106,13 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				// entry exists but it has been expired
 				// return
-				w.WriteHeader(internal.FailStatus)
+				w.WriteHeader(cfg.FailStatus)
 				return
 			}
 
 			// entry exists and response is valid
 			// send it to the client
-			w.Header().Set(internal.ContentTypeHeader, res.ContentType())
+			w.Header().Set(cfg.ContentTypeHeader, res.ContentType())
 			w.WriteHeader(res.StatusCode())
 			w.Write(res.Body())
 		}
@@ -124,12 +124,12 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil || len(body) == 0 {
 				// println("body's request was empty, return fail")
-				w.WriteHeader(internal.FailStatus)
+				w.WriteHeader(cfg.FailStatus)
 				return
 			}
 
-			statusCode, _ := getURLParamInt(r, internal.QueryCacheStatusCode)
-			contentType := getURLParam(r, internal.QueryCacheContentType)
+			statusCode, _ := getURLParamInt(r, cfg.QueryCacheStatusCode)
+			contentType := getURLParam(r, cfg.QueryCacheContentType)
 
 			// now that we have the information
 			// we want to see if this is a totally new cache entry
@@ -141,7 +141,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				// get the information by its url
 				// println("we have a post request method, let's save a cached entry ")
 				// get the cache expiration via url param
-				expirationSeconds, err := getURLParamInt64(r, internal.QueryCacheDuration)
+				expirationSeconds, err := getURLParamInt64(r, cfg.QueryCacheDuration)
 				// get the body from the requested body
 				// get the expiration from the "cache-control's maxage" if no url param is setted
 				if expirationSeconds <= 0 || err != nil {
@@ -149,7 +149,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				// if not setted then try to get it via
 				if expirationSeconds <= 0 {
-					expirationSeconds = int64(internal.MinimumCacheDuration.Seconds())
+					expirationSeconds = int64(cfg.MinimumCacheDuration.Seconds())
 				}
 
 				cacheDuration := time.Duration(expirationSeconds) * time.Second
@@ -162,7 +162,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				entry.Reset(statusCode, contentType, body, nethttp.GetMaxAge(r))
 			}
 
-			w.WriteHeader(internal.SuccessStatus)
+			w.WriteHeader(cfg.SuccessStatus)
 		}
 	case methodDelete:
 		{
@@ -170,10 +170,10 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// manually DELETE cache should remove this entirely
 			// no just invalidate it
 			s.store.Remove(key)
-			w.WriteHeader(internal.SuccessStatus)
+			w.WriteHeader(cfg.SuccessStatus)
 		}
 	default:
-		w.WriteHeader(internal.FailStatus)
+		w.WriteHeader(cfg.FailStatus)
 	}
 
 }

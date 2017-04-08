@@ -1,9 +1,9 @@
 package httpcache
 
 import (
-	"github.com/geekypanda/httpcache/internal/fhttp"
-	"github.com/geekypanda/httpcache/internal/nethttp"
-	"github.com/geekypanda/httpcache/internal/server"
+	"github.com/geekypanda/httpcache/fhttp"
+	"github.com/geekypanda/httpcache/nethttp"
+	"github.com/geekypanda/httpcache/server"
 	"github.com/valyala/fasthttp"
 	"net/http"
 	"time"

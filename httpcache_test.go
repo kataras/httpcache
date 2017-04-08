@@ -1,16 +1,17 @@
 package httpcache_test
 
 import (
-	"github.com/gavv/httpexpect"
-	"github.com/geekypanda/httpcache"
-	"github.com/geekypanda/httpcache/httptest"
-	"github.com/geekypanda/httpcache/internal/nethttp/rule"
-	"github.com/kataras/go-errors"
-	"github.com/valyala/fasthttp"
 	"net/http"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/gavv/httpexpect"
+	"github.com/geekypanda/httpcache"
+	"github.com/geekypanda/httpcache/httptest"
+	"github.com/geekypanda/httpcache/nethttp/rule"
+	"github.com/kataras/go-errors"
+	"github.com/valyala/fasthttp"
 )
 
 var (

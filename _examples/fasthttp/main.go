@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/valyala/fasthttp"
 	"time"
 
 	"github.com/geekypanda/httpcache"
 	"github.com/kataras/go-template"
 	"github.com/kataras/go-template/html"
+	"github.com/valyala/fasthttp"
 )
 
 // In this example we will see how custom templates are cached,

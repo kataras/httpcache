@@ -1,10 +1,11 @@
 package httptest
 
 import (
-	"github.com/gavv/httpexpect"
-	"github.com/valyala/fasthttp"
 	"net/http"
 	"testing"
+
+	"github.com/gavv/httpexpect"
+	"github.com/valyala/fasthttp"
 )
 
 type (

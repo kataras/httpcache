@@ -1,4 +1,5 @@
-package internal
+// Package ruleset provides the basics rules which are being extended bynethttp's and fhttp's rules.
+package ruleset
 
 // The shared header-mostly rules for both nethttp and fasthttp
 var (

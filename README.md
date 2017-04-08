@@ -1,4 +1,4 @@
-httpcache is an automation web cache service written in Go.
+httpcache is an easy, http cache service written in Go.
 
 Compatible with [net/http](https://golang.org/pkg/net/http/) and [valyala/fasthttp](https://github.com/valyala/fasthttp).
 
@@ -133,7 +133,7 @@ The authors of httpcache project are:
 
 - [@GeekyPanda](https://github.com/GeekyPanda) has over a decade's experience on network and distributed systems.
 - [@kataras](https://github.com/kataras) is the author of the fastest GoLang web framework.
-
+- [@esemplastic](https://github.com/esemplastic)
 
 License
 ------------

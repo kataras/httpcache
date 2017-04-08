@@ -1,10 +1,14 @@
-package fhttp
+package nethttp
 
 import (
-	"github.com/geekypanda/httpcache/internal"
-	"github.com/geekypanda/httpcache/internal/fhttp/rule"
-	"github.com/valyala/fasthttp"
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"time"
+
+	"github.com/geekypanda/httpcache/cfg"
+	"github.com/geekypanda/httpcache/nethttp/rule"
+	"github.com/geekypanda/httpcache/uri"
 )
 
 // ClientHandler is the client-side handler
@@ -15,9 +19,8 @@ import (
 //  which lives on other, external machine.
 //
 type ClientHandler struct {
-
 	// bodyHandler the original route's handler
-	bodyHandler fasthttp.RequestHandler
+	bodyHandler http.Handler
 
 	// Rule optional validators for pre cache and post cache actions
 	//
@@ -38,7 +41,7 @@ type ClientHandler struct {
 // the ClientHandler is useful when user
 // wants to apply horizontal scaling to the app and
 // has a central http server which handles
-func NewClientHandler(bodyHandler fasthttp.RequestHandler, life time.Duration, remote string) *ClientHandler {
+func NewClientHandler(bodyHandler http.Handler, life time.Duration, remote string) *ClientHandler {
 	return &ClientHandler{
 		bodyHandler:      bodyHandler,
 		rule:             DefaultRuleSet,
@@ -73,14 +76,13 @@ func (h *ClientHandler) AddRule(r rule.Rule) *ClientHandler {
 	return h
 }
 
-// ClientFasthttp is used inside the global RequestFasthttp function
-// this client is an exported variable because the maybe the remote cache service is running behind ssl,
-// in that case you are able to set a Transport inside it
-var ClientFasthttp = &fasthttp.Client{WriteTimeout: internal.RequestCacheTimeout, ReadTimeout: internal.RequestCacheTimeout}
+// Client is used inside the global Request function
+// this client is an exported to give you a freedom of change its Transport, Timeout and so on(in case of ssl)
+var Client = &http.Client{Timeout: cfg.RequestCacheTimeout}
 
-var (
-	methodGetBytes  = []byte("GET")
-	methodPostBytes = []byte("POST")
+const (
+	methodGet  = "GET"
+	methodPost = "POST"
 )
 
 // ServeHTTP , or remote cache client whatever you like, it's the client-side function of the ServeHTTP
@@ -98,75 +100,72 @@ var (
 // if <=minimumAllowedCacheDuration then the server will try to parse from "cache-control" header
 //
 // client-side function
-func (h *ClientHandler) ServeHTTP(reqCtx *fasthttp.RequestCtx) {
+func (h *ClientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	// check for pre-cache validators, if at least one of them return false
+	// check for deniers, if at least one of them return true
 	// for this specific request, then skip the whole cache
-	if !h.rule.Claim(reqCtx) {
-		h.bodyHandler(reqCtx)
+	if !h.rule.Claim(r) {
+		h.bodyHandler.ServeHTTP(w, r)
 		return
 	}
 
-	uri := &internal.URIBuilder{}
-	uri.ServerAddr(h.remoteHandlerURL).ClientURI(string(reqCtx.URI().RequestURI())).ClientMethod(string(reqCtx.Method()))
+	uri := &uri.URIBuilder{}
+	uri.ServerAddr(h.remoteHandlerURL).ClientURI(r.URL.RequestURI()).ClientMethod(r.Method)
 
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
-	req.URI().Update(uri.String())
-	req.Header.SetMethodBytes(methodGetBytes)
-
-	res := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(res)
-	// println("[FASTHTTP] GET Do to the remote cache service with the url: " + req.URI().String())
-
-	err := ClientFasthttp.Do(req, res)
-	if err != nil || res.StatusCode() == internal.FailStatus {
-
-		//	println("lets execute the main fasthttp handler times: ")
-		//	print(times)
-		//		times++
-		// if not found on cache, then execute the handler and save the cache to the remote server
-		h.bodyHandler(reqCtx)
-
-		// check if it's a valid response, if it's not then just return.
-		if !h.rule.Valid(reqCtx) {
-			return
-		}
-
-		// save to the remote cache
-
-		body := reqCtx.Response.Body()[0:]
-		if len(body) == 0 {
-			return // do nothing..
-		}
-		req.Reset()
-
-		uri.StatusCode(reqCtx.Response.StatusCode())
-		uri.Lifetime(h.life)
-		uri.ContentType(string(reqCtx.Response.Header.Peek(internal.ContentTypeHeader)))
-
-		req.URI().Update(uri.String())
-		req.Header.SetMethodBytes(methodPostBytes)
-		req.SetBody(body)
-
-		//	go func() {
-		//	println("[FASTHTTP] POST Do to the remote cache service with the url: " + req.URI().String() + " , method validation: " + string(req.Header.Method()))
-		//	err := ClientFasthttp.Do(req, res)
-		//	if err != nil {
-		//	println("[FASTHTTP] ERROR WHEN POSTING TO SAVE THE CACHE ENTRY. TRACE: " + err.Error())
-		//	}
-		ClientFasthttp.Do(req, res)
-		//	}()
-
-	} else {
-		// get the status code , content type and the write the response body
-		statusCode := res.StatusCode()
-		//	println("[FASTHTTP] ServeHTTP: WRITE WITH THE CACHED, StatusCode: ", statusCode)
-		cType := res.Header.ContentType()
-		reqCtx.SetStatusCode(statusCode)
-		reqCtx.Response.Header.SetContentTypeBytes(cType)
-
-		reqCtx.Write(res.Body())
+	// set the full url here because below we have other issues, probably net/http bugs
+	request, err := http.NewRequest(methodGet, uri.String(), nil)
+	if err != nil {
+		//// println("error when requesting to the remote service: " + err.Error())
+		// somehing very bad happens, just execute the user's handler and return
+		h.bodyHandler.ServeHTTP(w, r)
+		return
 	}
 
+	// println("GET Do to the remote cache service with the url: " + request.URL.String())
+	response, err := Client.Do(request)
+
+	if err != nil || response.StatusCode == cfg.FailStatus {
+		// if not found on cache, then execute the handler and save the cache to the remote server
+		recorder := AcquireResponseRecorder(w)
+		defer ReleaseResponseRecorder(recorder)
+
+		h.bodyHandler.ServeHTTP(recorder, r)
+
+		// check if it's a valid response, if it's not then just return.
+		if !h.rule.Valid(recorder, r) {
+			return
+		}
+		// save to the remote cache
+		// we re-create the request for any case
+
+		body := recorder.Body()[0:]
+		if len(body) == 0 {
+			//// println("Request: len body is zero, do nothing")
+			return
+		}
+		uri.StatusCode(recorder.StatusCode())
+		uri.Lifetime(h.life)
+		uri.ContentType(recorder.ContentType())
+
+		request, err = http.NewRequest(methodPost, uri.String(), bytes.NewBuffer(body)) // yes new buffer every time
+
+		// println("POST Do to the remote cache service with the url: " + request.URL.String())
+		if err != nil {
+			//// println("Request: error on method Post of request to the remote: " + err.Error())
+			return
+		}
+		// go Client.Do(request)
+		Client.Do(request)
+	} else {
+		// get the status code , content type and the write the response body
+		w.Header().Set(cfg.ContentTypeHeader, response.Header.Get(cfg.ContentTypeHeader))
+		w.WriteHeader(response.StatusCode)
+		responseBody, err := ioutil.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil {
+			return
+		}
+		w.Write(responseBody)
+
+	}
 }

@@ -1,8 +1,8 @@
 package fhttp
 
 import (
-	"github.com/geekypanda/httpcache/internal"
-	"github.com/geekypanda/httpcache/internal/fhttp/rule"
+	"github.com/geekypanda/httpcache/entry"
+	"github.com/geekypanda/httpcache/fhttp/rule"
 	"github.com/valyala/fasthttp"
 	"time"
 )
@@ -15,17 +15,17 @@ type Handler struct {
 
 	// Rule optional validators for pre cache and post cache actions
 	//
-	// See more at ruleset.go
+	// See more at rule.go
 	rule rule.Rule
 
 	// entry is the memory cache entry
-	entry *internal.Entry
+	entry *entry.Entry
 }
 
 // NewHandler returns a new cached handler
 func NewHandler(bodyHandler fasthttp.RequestHandler,
 	expireDuration time.Duration) *Handler {
-	e := internal.NewEntry(expireDuration)
+	e := entry.NewEntry(expireDuration)
 
 	return &Handler{
 		bodyHandler: bodyHandler,
@@ -34,8 +34,8 @@ func NewHandler(bodyHandler fasthttp.RequestHandler,
 	}
 }
 
-// Rule sets the ruleset for this handler,
-// see internal/net/http/ruleset.go for more information.
+// Rule sets the rule for this handler,
+// see internal/net/http/rule.go for more information.
 //
 // returns itself.
 func (h *Handler) Rule(r rule.Rule) *Handler {
