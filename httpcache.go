@@ -11,7 +11,7 @@ import (
 
 const (
 	// Version is the release version number of the httpcache package.
-	Version = "0.0.4"
+	Version = "0.0.5"
 )
 
 // func When(cachedHandler *nethttp.Handler, claimFuncs, validFuncs)
