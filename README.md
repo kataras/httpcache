@@ -83,7 +83,7 @@ import (
 
 func main() {
 	// The only thing that separates your handler to be cached is just
-    // ONE function wrapper
+        // ONE function wrapper
 	// httpcache.CacheFunc will cache your http.HandlerFunc
 	// httpcache.Cache will cache your http.Handler
 	//
