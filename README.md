@@ -58,7 +58,7 @@ Some of them are...
 - `text/html`
 - `text/plain`
 - `text/xml`
-- `text/javascript (JSONP)``
+- `text/javascript (JSONP)`
 - `application/octet-stream`
 - `application/pdf`
 - `image/jpeg`
